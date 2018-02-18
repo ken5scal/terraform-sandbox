@@ -155,7 +155,7 @@ variable "server_port" {
 }
 
 variable "image_id" {
-  default = "ami-48630c2e"
+  default = "ami-48630c2e" //ubuntu
 }
 
 variable "instance_type" {
