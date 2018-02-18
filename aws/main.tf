@@ -57,7 +57,7 @@ resource "aws_autoscaling_group" "ex-asg" {
   }
 }
 
-# ELB
+# ELB (Classic)
 resource "aws_elb" "ex-elb" {
   name               = "terraform-elb-example"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
