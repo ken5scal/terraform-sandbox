@@ -1,25 +1,3 @@
-provider "aws" {
-  region = "ap-northeast-1"
-}
-
-data "aws_ami" "amazon_linxu2" {
-  most_recent = true
-
-  filter {
-    name   = "owner-alias"
-    values = ["amazon"]
-  }
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-}
-
-# each AWS account has access to a slightly diff set of AZs
-# so fetch the AZs specific to the AWS account
-data "aws_availability_zones" "all" {}
-
 # Specifies how to configure each EC2 instance in the ASG.
 resource "aws_launch_configuration" "ex-launch-config" {
   image_id        = "${var.image_id}"
@@ -84,24 +62,6 @@ resource "aws_key_pair" "terraform-key" {
   public_key = "${file("${local.public_key_filename}")}"
 }
 
-resource "aws_instance" "example" {
-  # ami                    = "${data.aws_ami.amazon_linxu2.image_id}"
-  ami                    = "${var.image_id}"
-  instance_type          = "${var.instance_type}"
-  vpc_security_group_ids = ["${aws_security_group.example-sg.id}"]
-  key_name               = "${aws_key_pair.terraform-key.key_name}"
-
-  user_data = <<-EOF
-    #!/bin/bash
-    echo "Hellom, World" > index.html
-    nohup busybox httpd -f -p "${var.server_port}" &
-    EOF
-
-  tags {
-    Name = "terraform-example"
-  }
-}
-
 resource "aws_security_group" "example-sg" {
   name = "terraform-example-sg"
 
@@ -147,29 +107,4 @@ resource "aws_security_group" "sg-elb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-variable "server_port" {
-  description = "The port the server will use for HTTP requests"
-  default     = "8080"
-}
-
-variable "image_id" {
-  default = "ami-48630c2e" //ubuntu
-}
-
-variable "instance_type" {
-  default = "t2.micro"
-}
-
-output "public_ip" {
-  value = "${aws_instance.example.public_ip}"
-}
-
-output "elb_dns_name" {
-  value = "${aws_elb.ex-elb.dns_name}"
-}
-
-locals {
-  public_key_filename = "/Users/Kengo/workspace/terraform-sandbox/aws/terraform-key.pub"
 }
