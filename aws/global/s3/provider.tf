@@ -27,3 +27,22 @@ terraform {
 # Terraform to store the sate in your S3 bucket w/ encryption
 # terraform init
 
+
+# IT WILL NOT SOLVE locking for the state files
+# use Terraform Enterprise or Pro (or CircleCI, Terragrunt)
+
+
+# IT WILL NOT SOLVE isolation problem for the state files
+# place files to make it Environment base, component base...and so on
+# env level(stage, prod, mgmt, global)
+## mgmg -> Devops tooling (eg, bastion, jenkins)
+## global -> use in all envs(S3, IAM)
+# component level(vpc, services, data-storage
+## vpc
+## services: microservices. ci, bastion, rails frontend, scala backentd...
+## data-storage: mysql, redis
+# config files
+## vars.tf
+## main.tf
+## output.tf
+
