@@ -5,11 +5,14 @@ resource "aws_launch_configuration" "ex-launch-config" {
   security_groups = ["${aws_security_group.example-sg.id}"]
   key_name        = "${aws_key_pair.terraform-key.key_name}"
 
-  user_data = <<-EOF
-    #!/bin/bash
-    echo "Hellom, World" > index.html
-    nohup busybox httpd -f -p "${var.server_port}" &
-    EOF
+  # user_data = <<-EOF
+  #   #!/bin/bash
+  #   echo "Hellom, World" > index.html
+  #   echo "${data.terraform_remote_state.db.address}" >> index.html
+  #   echo "${data.terraform_remote_state.db.port}" >> index.html
+  #   nohup busybox httpd -f -p "${var.server_port}" &
+  #   EOF
+  user_data = "${data.template_file.user_data.rendered}"
 
   # meta-parameter
   lifecycle {
