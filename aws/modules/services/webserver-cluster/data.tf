@@ -2,13 +2,15 @@ data "aws_ami" "amazon_linxu2" {
   most_recent = true
 
   filter {
-    name   = "owner-alias"
-    values = ["amazon"]
+    name = "owner-alias"
+    values = [
+      "amazon"]
   }
 
   filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    name = "name"
+    values = [
+      "amzn2-ami-hvm-*-x86_64-gp2"]
   }
 }
 
@@ -20,8 +22,10 @@ data "terraform_remote_state" "db" {
   backend = "s3"
 
   config {
-    bucket = "terraform-state-ken5scal"                # backend config cannot use interpolation
-    key    = "stg/data-stores/mysql/terraform.tfstate"
+    bucket = "${var.db_remote_state_bucket}"
+    #"terraform-state-ken5scal"                # backend config cannot use interpolation
+    key = "${var.db_remote_state_key}"
+    #"stg/data-stores/mysql/terraform.tfstate"
     region = "ap-northeast-1"
   }
 }
@@ -31,7 +35,7 @@ data "template_file" "user_data" {
 
   vars {
     server_port = "${var.server_port}"
-    db_address  = "${data.terraform_remote_state.db.address}"
-    db_port     = "${data.terraform_remote_state.db.port}"
+    db_address = "${data.terraform_remote_state.db.address}"
+    db_port = "${data.terraform_remote_state.db.port}"
   }
 }
