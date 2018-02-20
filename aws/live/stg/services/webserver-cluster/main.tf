@@ -4,7 +4,7 @@ provider "aws" {
 
 module "webserver_cluster" {
   //  source = "../../../modules/services/webserver-cluster"
-  source = "git::git@github.com:ken5scal/modules.git//services/webserver-cluster?ref=v0.0.5"
+  source = "git::git@github.com:ken5scal/terrafor-modules.git//services/webserver-cluster?ref=v0.0.5"
   cluster_name = "webservers-stage"
   db_remote_state_bucket = "terraform-state-ken5scal"
   db_remote_state_key = "stg/data-stores/mysql/terraform.tfstate"
@@ -42,8 +42,9 @@ resource "aws_s3_bucket" "terraform_state" {
 # https://www.terraform.io/docs/backends/types/s3.html
 terraform {
   backend "s3" {
-    bucket = "terraform-state-ken5scal"                         # backend config cannot use interpolation
-    key    = "stg/services/webserver-cluster/terraform.tfstate"
+    bucket = "terraform-state-ken5scal"
+    # backend config cannot use interpolation
+    key = "stg/services/webserver-cluster/terraform.tfstate"
     region = "ap-northeast-1"
   }
 }

@@ -9,7 +9,7 @@ variable "image_id" {
 }
 
 variable "instance_type" {
-//  default = "t2.micro"
+  //  default = "t2.micro"
   description = "The type of EC2 Instances to run (e.g. t2.micro)"
 }
 
@@ -35,4 +35,24 @@ variable "db_remote_state_bucket" {
 
 variable "db_remote_state_key" {
   description = "The path for the db's remote state in S3"
+}
+
+variable "enable_autoscaling" {
+  description = "If set to true, enable auto scaling"
+}
+
+variable "give_neo_cloudwatch_full-access" {
+  description = "If true, neo gets full acess to CloudWatch"
+}
+
+variable "user_names" {
+  type = "list"
+  default = [
+    "neo",
+    "trinity",
+    "morpheus"]
+}
+
+variable "enable_new_user_data" {
+  description = "If set to true, use the new User Data script"
 }

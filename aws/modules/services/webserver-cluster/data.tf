@@ -31,7 +31,21 @@ data "terraform_remote_state" "db" {
 }
 
 data "template_file" "user_data" {
-  template = "${file("user-data.sh")}"
+  count = "${1 - var.enable_new_user_data}"
+
+  template = "${file("${path.module}/user-data.sh")}"
+
+  vars {
+    server_port = "${var.server_port}"
+    db_address = "${data.terraform_remote_state.db.address}"
+    db_port = "${data.terraform_remote_state.db.port}"
+  }
+}
+
+data "template_file" "user_data_new" {
+  count = "${var.enable_new_user_data}"
+
+  template = "${file("${path.module}/user-data-new.sh")}"
 
   vars {
     server_port = "${var.server_port}"

@@ -13,7 +13,10 @@ resource "aws_launch_configuration" "ex-launch-config" {
   #   echo "${data.terraform_remote_state.db.port}" >> index.html
   #   nohup busybox httpd -f -p "${var.server_port}" &
   #   EOF
-  user_data = "${data.template_file.user_data.rendered}"
+  user_data = "${element(
+    concat(data.template_file.user_data.*.rendered,
+    data.template_file.user_data_new.*.rendered),
+    0)}"
 
   # meta-parameter
   lifecycle {
@@ -104,20 +107,135 @@ resource "aws_security_group" "example-sg" {
 
 resource "aws_security_group" "sg-elb" {
   name = "${var.cluster_name}-sg-elb"
+}
 
-  ingress {
-    from_port = 80
-    to_port = 80
-    protocol = "tcp"
-    cidr_blocks = [
-      "0.0.0.0/0"]
+resource "aws_security_group_rule" "allow_http_inbound" {
+  type = "ingress"
+  security_group_id = "${aws_security_group.sg-elb.id}"
+  from_port = 80
+  to_port = 80
+  protocol = "tcp"
+  cidr_blocks = [
+    "0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "allow_all_outbound" {
+  type = "egress"
+  security_group_id = "${aws_security_group.sg-elb.id}"
+  from_port = 0
+  to_port = 0
+  protocol = "-1"
+  cidr_blocks = [
+    "0.0.0.0/0"]
+}
+
+resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
+  count = "${var.enable_autoscaling}"
+  // if set to 0 / false, then the resource is not created at all.
+
+  scheduled_action_name = "scale-out-during-business-hours"
+  min_size = 2
+  max_size = 10
+  desired_capacity = 10
+  recurrence = "0 9 * * *"
+  autoscaling_group_name = "${aws_autoscaling_group.ex-asg.name}"
+}
+
+resource "aws_autoscaling_schedule" "scale_in_at_night" {
+  count = "${var.enable_autoscaling}"
+  // if set to 0 / false, then the resource is not created at all.
+
+  scheduled_action_name = "scale-in-at-night"
+  min_size = 2
+  max_size = 10
+  desired_capacity = 2
+  recurrence = "0 17 * * *"
+  autoscaling_group_name = "${aws_autoscaling_group.ex-asg.name}"
+}
+
+resource "aws_cloudwatch_metric_alarm" "high_cpu_utilization" {
+  alarm_name = "${var.cluster_name}-high-cpu-utilization"
+  namespace = "AWS/EC2"
+  metric_name = "CPUUtilization"
+
+  dimensions {
+    AutoScalingGroupName = "${aws_autoscaling_group.ex-asg.name}"
   }
 
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = [
-      "0.0.0.0/0"]
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = 1
+  period = 300
+  statistic = "Average"
+  threshold = 90
+  unit = "Percent"
+}
+
+resource "aws_cloudwatch_metric_alarm" "low_cpu_utilization" {
+  count = "${format("%.1s", var.instance_type) == "t" ? 1:0}"
+
+  alarm_name = "${var.cluster_name}-low-cpu-utilization"
+  namespace = "AWS/EC2"
+  metric_name = "CPUCreditBalance"
+  // Only apply to tXXXX instances (e.g., t2micro)
+
+  dimensions {
+    AutoScalingGroupName = "${aws_autoscaling_group.ex-asg.name}"
   }
+
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods = 1
+  period = 300
+  statistic = "Minimum"
+  threshold = 10
+  unit = "Count"
+}
+
+resource "aws_iam_user" "example" {
+  count = "${length(var.user_names)}"
+  name = "${element(var.user_names, count.index)}"
+}
+
+data "aws_iam_policy_document" "cloudwatch_read_only" {
+  "statement" {
+    effect = "Allow"
+    actions = [
+      "cloudwatch:Describe*",
+      "cloudwatch:Get*",
+      "cloudwatch:List*"]
+    resources = [
+      "*"]
+  }
+}
+
+resource "aws_iam_policy" "cloudwatch_read_only" {
+  name = "cloudwatch-read-only"
+  policy = "${data.aws_iam_policy_document.cloudwatch_read_only.json}"
+}
+
+resource "aws_iam_user_policy_attachment" "neo_cloudwatch_read_only" {
+  count = "${var.give_neo_cloudwatch_full-access}"
+  policy_arn = "${aws_iam_policy.cloudwatch_full_access.arn}"
+  user = "${aws_iam_user.example.0.name}"
+}
+
+data "aws_iam_policy_document" "cloudwatch_full_access" {
+  "statement" {
+    effect = "Allow"
+    actions = [
+      "cloudwatch:*"]
+    resources = [
+      "*"]
+  }
+}
+
+resource "aws_iam_policy" "cloudwatch_full_access" {
+  name = "cloudwatch-full-access"
+  policy = "${data.aws_iam_policy_document.cloudwatch_full_access.json}"
+}
+
+resource "aws_iam_user_policy_attachment" "neo_cloudwatch_full_access" {
+  count = "${1 - var.give_neo_cloudwatch_full-access}"
+  //if-else statement
+  policy_arn = "${aws_iam_policy.cloudwatch_full_access.arn}"
+  user = "${aws_iam_user.example.0.name}"
 }
