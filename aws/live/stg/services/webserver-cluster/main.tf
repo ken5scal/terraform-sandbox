@@ -4,7 +4,7 @@ provider "aws" {
 
 module "webserver_cluster" {
   //  source = "../../../modules/services/webserver-cluster"
-  source = "git::git@github.com:ken5scal/modules.git//services/webserver-cluster?ref=v0.0.3"
+  source = "git::git@github.com:ken5scal/modules.git//services/webserver-cluster?ref=v0.0.5"
   cluster_name = "webservers-stage"
   db_remote_state_bucket = "terraform-state-ken5scal"
   db_remote_state_key = "stg/data-stores/mysql/terraform.tfstate"
@@ -13,6 +13,8 @@ module "webserver_cluster" {
   min_size = "2"
 
   enable_autoscaling = false
+  enable_new_user_data = false
+  give_neo_cloudwatch_full-access = true
 }
 
 resource "aws_security_group_rule" "allow_testing_inbound" {
